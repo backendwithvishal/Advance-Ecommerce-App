@@ -47,6 +47,8 @@ services:
 
   redis:
     image: redis:7-alpine
+    ports:
+      - '6379:6379'
     volumes:
       - redis_data:/data
     healthcheck:
@@ -59,7 +61,7 @@ services:
   rabbitmq:
     image: rabbitmq:3-management
     ports:
-      # Management UI only — AMQP port (5672) intentionally NOT exposed to host
+      - '5672:5672'
       - '15672:15672'
     environment:
       # RabbitMQ credentials (QW14 fix — was using default guest/guest)
