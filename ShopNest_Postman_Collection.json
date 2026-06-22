@@ -2,14 +2,28 @@
   "info": {
     "_postman_id": "2457ef87-a7a7-401c-a6cf-94d3402bc0d8",
     "name": "ShopNest API",
+    "description": "Complete ShopNest backend API collection. Import this file and set the `endpoint` variable to your server URL.\n\nNew endpoints added:\n- POST /api/auth/refresh\n- POST /api/auth/logout\n- POST /api/auth/forgot-password\n- POST /api/auth/reset-password\n- GET  /api/reviews/:productId\n- POST /api/reviews\n- DELETE /api/reviews/:id\n- GET  /health\n- GET  /api/products (with pagination & filters)",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
     {
-      "name": "AUTH",
+      "name": "Health",
       "item": [
         {
           "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{endpoint}}/health",
+              "host": ["{{endpoint}}"],
+              "path": ["health"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Root",
           "request": {
             "method": "GET",
             "header": [],
@@ -20,15 +34,37 @@
             }
           },
           "response": []
-        },
+        }
+      ]
+    },
+    {
+      "name": "AUTH",
+      "item": [
         {
           "name": "Register User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.token) {",
+                  "  pm.collectionVariables.set('token', res.token);",
+                  "  pm.collectionVariables.set('refreshToken', res.refreshToken);",
+                  "  pm.collectionVariables.set('userId', res._id);",
+                  "  console.log('Registered. Token and userId saved.');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"user@gmail.com\",\n  \"password\": \"pass123\"\n}",
+              "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"password\": \"pass123\"\n}",
               "options": { "raw": { "language": "json" } }
             },
             "url": {
@@ -49,6 +85,9 @@
                   "const res = pm.response.json();",
                   "if (res.token) {",
                   "  pm.collectionVariables.set('token', res.token);",
+                  "  pm.collectionVariables.set('refreshToken', res.refreshToken);",
+                  "  pm.collectionVariables.set('userId', res._id);",
+                  "  console.log('Logged in. Token, refreshToken, userId saved.');",
                   "}"
                 ],
                 "type": "text/javascript"
@@ -60,13 +99,115 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"user@gmail.com\",\n  \"password\": \"pass123\"\n}",
+              "raw": "{\n  \"email\": \"john@example.com\",\n  \"password\": \"pass123\"\n}",
               "options": { "raw": { "language": "json" } }
             },
             "url": {
               "raw": "{{endpoint}}/api/auth/login",
               "host": ["{{endpoint}}"],
               "path": ["api", "auth", "login"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.token) {",
+                  "  pm.collectionVariables.set('token', res.token);",
+                  "  pm.collectionVariables.set('refreshToken', res.refreshToken);",
+                  "  console.log('Token rotated and saved.');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\",\n  \"userId\": \"{{userId}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{endpoint}}/api/auth/refresh",
+              "host": ["{{endpoint}}"],
+              "path": ["api", "auth", "refresh"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Logout",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  pm.collectionVariables.set('token', '');",
+                  "  pm.collectionVariables.set('refreshToken', '');",
+                  "  console.log('Logged out. Tokens cleared.');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{endpoint}}/api/auth/logout",
+              "host": ["{{endpoint}}"],
+              "path": ["api", "auth", "logout"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john@example.com\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{endpoint}}/api/auth/forgot-password",
+              "host": ["{{endpoint}}"],
+              "path": ["api", "auth", "forgot-password"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{resetToken}}\",\n  \"password\": \"newpass123\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{endpoint}}/api/auth/reset-password",
+              "host": ["{{endpoint}}"],
+              "path": ["api", "auth", "reset-password"]
             }
           },
           "response": []
@@ -94,20 +235,74 @@
       "name": "Products",
       "item": [
         {
-          "name": "Get All Products",
+          "name": "Get All Products (No Filters)",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{endpoint}}/api/products",
+              "raw": "{{endpoint}}/api/products?page=1&limit=20",
               "host": ["{{endpoint}}"],
-              "path": ["api", "products"]
+              "path": ["api", "products"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Products (With Filters)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{endpoint}}/api/products?category=Electronics&minPrice=50&maxPrice=500&page=1&limit=10",
+              "host": ["{{endpoint}}"],
+              "path": ["api", "products"],
+              "query": [
+                { "key": "category", "value": "Electronics" },
+                { "key": "minPrice", "value": "50" },
+                { "key": "maxPrice", "value": "500" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Search Products",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{endpoint}}/api/products?search=headphones",
+              "host": ["{{endpoint}}"],
+              "path": ["api", "products"],
+              "query": [
+                { "key": "search", "value": "headphones" }
+              ]
             }
           },
           "response": []
         },
         {
           "name": "Get Product By ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res._id) {",
+                  "  pm.collectionVariables.set('productId', res._id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [],
@@ -121,6 +316,21 @@
         },
         {
           "name": "ADMIN -- Create Product",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res._id) {",
+                  "  pm.collectionVariables.set('productId', res._id);",
+                  "  console.log('productId saved:', res._id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "auth": {
               "type": "bearer",
@@ -131,9 +341,9 @@
             "body": {
               "mode": "formdata",
               "formdata": [
-                { "key": "name", "value": "Product Name", "type": "text" },
-                { "key": "description", "value": "Product Description", "type": "text" },
-                { "key": "price", "value": "99.99", "type": "text" },
+                { "key": "name", "value": "Wireless Headphones", "type": "text" },
+                { "key": "description", "value": "Premium noise-cancelling headphones", "type": "text" },
+                { "key": "price", "value": "299.99", "type": "text" },
                 { "key": "category", "value": "Electronics", "type": "text" },
                 { "key": "stock", "value": "50", "type": "text" },
                 { "key": "image", "type": "file", "src": "" }
@@ -196,6 +406,21 @@
       "item": [
         {
           "name": "Place Order",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res._id) {",
+                  "  pm.collectionVariables.set('orderId', res._id);",
+                  "  console.log('orderId saved:', res._id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "auth": {
               "type": "bearer",
@@ -205,7 +430,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"qty\": 2,\n      \"price\": 99.99\n    }\n  ],\n  \"totalAmount\": 199.98,\n  \"address\": {\n    \"fullName\": \"John Doe\",\n    \"street\": \"123 Main Street\",\n    \"city\": \"New York\",\n    \"postalCode\": \"10001\",\n    \"country\": \"United States\"\n  },\n  \"paymentId\": \"pay_123456789\"\n}",
+              "raw": "{\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"qty\": 2\n    }\n  ],\n  \"address\": {\n    \"fullName\": \"John Doe\",\n    \"street\": \"123 Main Street\",\n    \"city\": \"Mumbai\",\n    \"postalCode\": \"400001\",\n    \"country\": \"India\"\n  }\n}",
               "options": { "raw": { "language": "json" } }
             },
             "url": {
@@ -226,9 +451,13 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{endpoint}}/api/orders/myorders",
+              "raw": "{{endpoint}}/api/orders/myorders?page=1&limit=10",
               "host": ["{{endpoint}}"],
-              "path": ["api", "orders", "myorders"]
+              "path": ["api", "orders", "myorders"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
             }
           },
           "response": []
@@ -243,9 +472,35 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{endpoint}}/api/orders",
+              "raw": "{{endpoint}}/api/orders?page=1&limit=20",
               "host": ["{{endpoint}}"],
-              "path": ["api", "orders"]
+              "path": ["api", "orders"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "ADMIN -- Filter Orders By Status",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{endpoint}}/api/orders?status=Pending&page=1&limit=20",
+              "host": ["{{endpoint}}"],
+              "path": ["api", "orders"],
+              "query": [
+                { "key": "status", "value": "Pending" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
             }
           },
           "response": []
@@ -315,14 +570,17 @@
           "response": []
         },
         {
-          "name": "2. Confirm Payment (Server-Side, No Signature)",
+          "name": "2. Confirm Payment (with HMAC signature)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
                   "const res = pm.response.json();",
-                  "console.log('Confirm Payment response:', JSON.stringify(res));"
+                  "console.log('Confirm Payment response:', JSON.stringify(res));",
+                  "if (res.order && res.order._id) {",
+                  "  console.log('Order status:', res.order.status);",
+                  "}"
                 ],
                 "type": "text/javascript"
               }
@@ -337,7 +595,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"razorpay_order_id\": \"{{razorpayOrderId}}\",\n  \"razorpay_payment_id\": \"{{razorpayPaymentId}}\",\n  \"orderId\": \"{{orderId}}\"\n}",
+              "raw": "{\n  \"razorpay_order_id\": \"{{razorpayOrderId}}\",\n  \"razorpay_payment_id\": \"{{razorpayPaymentId}}\",\n  \"razorpay_signature\": \"{{razorpaySignature}}\",\n  \"orderId\": \"{{orderId}}\"\n}",
               "options": { "raw": { "language": "json" } }
             },
             "url": {
@@ -349,7 +607,7 @@
           "response": []
         },
         {
-          "name": "3. Verify Payment (Optional HMAC)",
+          "name": "3. Verify Payment Signature (Standalone)",
           "request": {
             "auth": {
               "type": "bearer",
@@ -359,13 +617,85 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"razorpay_order_id\": \"{{razorpayOrderId}}\",\n  \"razorpay_payment_id\": \"{{razorpayPaymentId}}\",\n  \"razorpay_signature\": \"<64-char-hex-signature-from-razorpay-checkout>\"\n}",
+              "raw": "{\n  \"razorpay_order_id\": \"{{razorpayOrderId}}\",\n  \"razorpay_payment_id\": \"{{razorpayPaymentId}}\",\n  \"razorpay_signature\": \"{{razorpaySignature}}\"\n}",
               "options": { "raw": { "language": "json" } }
             },
             "url": {
               "raw": "{{endpoint}}/api/payment/verify",
               "host": ["{{endpoint}}"],
               "path": ["api", "payment", "verify"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Reviews",
+      "item": [
+        {
+          "name": "Get Reviews For Product",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{endpoint}}/api/reviews/{{productId}}",
+              "host": ["{{endpoint}}"],
+              "path": ["api", "reviews", "{{productId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Review",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res._id) {",
+                  "  pm.collectionVariables.set('reviewId', res._id);",
+                  "  console.log('reviewId saved:', res._id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"{{productId}}\",\n  \"rating\": 5,\n  \"comment\": \"Absolutely love this product! Great quality and fast shipping.\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{endpoint}}/api/reviews",
+              "host": ["{{endpoint}}"],
+              "path": ["api", "reviews"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Review",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{endpoint}}/api/reviews/{{reviewId}}",
+              "host": ["{{endpoint}}"],
+              "path": ["api", "reviews", "{{reviewId}}"]
             }
           },
           "response": []
@@ -406,11 +736,16 @@
     }
   ],
   "variable": [
-    { "key": "endpoint", "value": "http://localhost:5000" },
-    { "key": "token", "value": "" },
-    { "key": "productId", "value": "" },
-    { "key": "orderId", "value": "" },
-    { "key": "razorpayOrderId", "value": "" },
-    { "key": "razorpayPaymentId", "value": "" }
+    { "key": "endpoint", "value": "http://localhost:5000", "description": "Change to your Render URL when deployed e.g. https://shopnest.onrender.com" },
+    { "key": "token", "value": "", "description": "Access token — auto-set by Login / Register" },
+    { "key": "refreshToken", "value": "", "description": "Refresh token — auto-set by Login / Register" },
+    { "key": "userId", "value": "", "description": "Logged-in user ID — auto-set by Login / Register" },
+    { "key": "productId", "value": "", "description": "Set after creating or fetching a product" },
+    { "key": "orderId", "value": "", "description": "Set after placing an order" },
+    { "key": "reviewId", "value": "", "description": "Set after creating a review" },
+    { "key": "razorpayOrderId", "value": "", "description": "Set after creating a Razorpay order" },
+    { "key": "razorpayPaymentId", "value": "", "description": "From Razorpay checkout callback — set manually" },
+    { "key": "razorpaySignature", "value": "", "description": "64-char hex HMAC from Razorpay checkout — set manually" },
+    { "key": "resetToken", "value": "", "description": "Token received in forgot-password email — set manually" }
   ]
 }

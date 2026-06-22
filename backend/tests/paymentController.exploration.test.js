@@ -35,6 +35,7 @@ const mockFindByIdAndUpdate = jest.fn();
 jest.mock('../models/Order', () => ({
   findOne: (...args) => mockFindOne(...args),
   findByIdAndUpdate: (...args) => mockFindByIdAndUpdate(...args),
+  findOneAndUpdate: (...args) => mockFindByIdAndUpdate(args[0]._id || args[0], args[1], args[2]),
 }));
 
 process.env.RAZORPAY_KEY_ID = 'test_key_id';
@@ -175,9 +176,15 @@ describe('Property 4 — confirmPayment response determined by server-side fetch
             mockFindByIdAndUpdate.mockResolvedValue({ _id: '64abc' });
           }
 
+          const sig = crypto.createHmac('sha256', process.env.RAZORPAY_KEY_SECRET).update(`ord_1|${paymentId}`).digest('hex');
           const { res, result } = makeRes();
           await confirmPayment({
-            body: { razorpay_order_id: 'ord_1', razorpay_payment_id: paymentId, orderId: '64abc' },
+            body: {
+              razorpay_order_id: 'ord_1',
+              razorpay_payment_id: paymentId,
+              razorpay_signature: sig,
+              orderId: '64abc'
+            },
             user: { _id: 'u1' },
           }, res);
 

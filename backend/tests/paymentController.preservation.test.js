@@ -37,6 +37,7 @@ const mockFindByIdAndUpdate = jest.fn();
 jest.mock('../models/Order', () => ({
   findOne: (...args) => mockFindOne(...args),
   findByIdAndUpdate: (...args) => mockFindByIdAndUpdate(...args),
+  findOneAndUpdate: (...args) => mockFindByIdAndUpdate(args[0]._id || args[0], args[1], args[2]),
 }));
 
 const TEST_SECRET = 'test_secret_key';
@@ -190,9 +191,15 @@ describe('confirmPayment — preservation: captured payment → 200 + publish', 
     mockPaymentsFetch.mockResolvedValue({ status: 'captured' });
     mockFindByIdAndUpdate.mockResolvedValue({ _id: '64abc', paymentId: 'pay_1' });
 
+    const sig = computeValidSignature('ord_1', 'pay_1');
     const { res, result } = makeRes();
     await confirmPayment({
-      body: { razorpay_order_id: 'ord_1', razorpay_payment_id: 'pay_1', orderId: '64abc' },
+      body: {
+        razorpay_order_id: 'ord_1',
+        razorpay_payment_id: 'pay_1',
+        razorpay_signature: sig,
+        orderId: '64abc'
+      },
       user: { _id: 'u1' },
     }, res);
 

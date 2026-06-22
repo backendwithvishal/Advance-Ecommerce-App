@@ -58,7 +58,7 @@ async function createPaymentOrder(userId, orderId) {
   }
 
   if (order.status !== 'Pending') {
-    const err = new Error('This order cannot be paid for in its current state');
+    const err = new Error('Order is not in a payable state');
     err.status = 400;
     throw err;
   }
@@ -124,9 +124,14 @@ async function confirmPayment(userId, razorpay_order_id, razorpay_payment_id, ra
   return updated;
 }
 
-function verifyPaymentSignature(razorpay_order_id, razorpay_payment_id, razorpay_signature) {
+async function verifyPaymentSignature(razorpay_order_id, razorpay_payment_id, razorpay_signature) {
   ensureRazorpay();
   verifySignature(razorpay_order_id, razorpay_payment_id, razorpay_signature);
+  await publishMessage('payment.verified', {
+    razorpay_order_id,
+    razorpay_payment_id,
+    timestamp: new Date().toISOString(),
+  });
 }
 
 module.exports = { createPaymentOrder, confirmPayment, verifyPaymentSignature };

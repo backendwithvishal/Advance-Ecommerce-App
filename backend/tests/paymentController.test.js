@@ -33,6 +33,7 @@ const mockFindByIdAndUpdate = jest.fn();
 jest.mock('../models/Order', () => ({
   findOne: (...args) => mockFindOne(...args),
   findByIdAndUpdate: (...args) => mockFindByIdAndUpdate(...args),
+  findOneAndUpdate: (...args) => mockFindByIdAndUpdate(args[0]._id || args[0], args[1], args[2]),
 }));
 
 // Set env vars before loading the controller
@@ -169,9 +170,10 @@ describe('confirmPayment — input validation', () => {
 describe('confirmPayment — Razorpay fetch', () => {
   test('fetch throws → 502', async () => {
     mockPaymentsFetch.mockRejectedValue(new Error('network'));
+    const sig = computeValidSig('ord_1', 'pay_1');
     const { res, result } = makeRes();
     await confirmPayment({
-      body: { razorpay_order_id: 'ord_1', razorpay_payment_id: 'pay_1', orderId: '64abc' },
+      body: { razorpay_order_id: 'ord_1', razorpay_payment_id: 'pay_1', razorpay_signature: sig, orderId: '64abc' },
       user: { _id: 'u1' },
     }, res);
     expect(result.statusCode).toBe(502);
@@ -179,9 +181,10 @@ describe('confirmPayment — Razorpay fetch', () => {
 
   test('status not captured/authorized → 402', async () => {
     mockPaymentsFetch.mockResolvedValue({ status: 'failed' });
+    const sig = computeValidSig('ord_1', 'pay_1');
     const { res, result } = makeRes();
     await confirmPayment({
-      body: { razorpay_order_id: 'ord_1', razorpay_payment_id: 'pay_1', orderId: '64abc' },
+      body: { razorpay_order_id: 'ord_1', razorpay_payment_id: 'pay_1', razorpay_signature: sig, orderId: '64abc' },
       user: { _id: 'u1' },
     }, res);
     expect(result.statusCode).toBe(402);
@@ -193,9 +196,10 @@ describe('confirmPayment — order update', () => {
   test('order not found → 404', async () => {
     mockPaymentsFetch.mockResolvedValue({ status: 'captured' });
     mockFindByIdAndUpdate.mockResolvedValue(null);
+    const sig = computeValidSig('ord_1', 'pay_1');
     const { res, result } = makeRes();
     await confirmPayment({
-      body: { razorpay_order_id: 'ord_1', razorpay_payment_id: 'pay_1', orderId: '64abc' },
+      body: { razorpay_order_id: 'ord_1', razorpay_payment_id: 'pay_1', razorpay_signature: sig, orderId: '64abc' },
       user: { _id: 'u1' },
     }, res);
     expect(result.statusCode).toBe(404);
@@ -204,9 +208,10 @@ describe('confirmPayment — order update', () => {
   test('success → 200, publishMessage called with orderId', async () => {
     mockPaymentsFetch.mockResolvedValue({ status: 'captured' });
     mockFindByIdAndUpdate.mockResolvedValue({ _id: '64abc', paymentId: 'pay_1' });
+    const sig = computeValidSig('ord_1', 'pay_1');
     const { res, result } = makeRes();
     await confirmPayment({
-      body: { razorpay_order_id: 'ord_1', razorpay_payment_id: 'pay_1', orderId: '64abc' },
+      body: { razorpay_order_id: 'ord_1', razorpay_payment_id: 'pay_1', razorpay_signature: sig, orderId: '64abc' },
       user: { _id: 'u1' },
     }, res);
     expect(result.statusCode).toBe(200);
@@ -222,9 +227,10 @@ describe('confirmPayment — order update', () => {
   test('authorized status also succeeds → 200', async () => {
     mockPaymentsFetch.mockResolvedValue({ status: 'authorized' });
     mockFindByIdAndUpdate.mockResolvedValue({ _id: '64abc' });
+    const sig = computeValidSig('ord_1', 'pay_1');
     const { res, result } = makeRes();
     await confirmPayment({
-      body: { razorpay_order_id: 'ord_1', razorpay_payment_id: 'pay_1', orderId: '64abc' },
+      body: { razorpay_order_id: 'ord_1', razorpay_payment_id: 'pay_1', razorpay_signature: sig, orderId: '64abc' },
       user: { _id: 'u1' },
     }, res);
     expect(result.statusCode).toBe(200);
