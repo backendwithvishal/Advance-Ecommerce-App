@@ -111,6 +111,41 @@
           "response": []
         },
         {
+          "name": "ADMIN -- Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.token) {",
+                  "  pm.collectionVariables.set('token', res.token);",
+                  "  pm.collectionVariables.set('refreshToken', res.refreshToken);",
+                  "  pm.collectionVariables.set('userId', res._id);",
+                  "  console.log('Admin logged in. Token, refreshToken, userId saved.');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@shopnest.com\",\n  \"password\": \"Admin@123\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{endpoint}}/api/auth/login",
+              "host": ["{{endpoint}}"],
+              "path": ["api", "auth", "login"]
+            }
+          },
+          "response": []
+        },
+        {
           "name": "Refresh Token",
           "event": [
             {
@@ -744,8 +779,8 @@
     { "key": "orderId", "value": "", "description": "Set after placing an order" },
     { "key": "reviewId", "value": "", "description": "Set after creating a review" },
     { "key": "razorpayOrderId", "value": "", "description": "Set after creating a Razorpay order" },
-    { "key": "razorpayPaymentId", "value": "", "description": "From Razorpay checkout callback — set manually" },
-    { "key": "razorpaySignature", "value": "", "description": "64-char hex HMAC from Razorpay checkout — set manually" },
-    { "key": "resetToken", "value": "", "description": "Token received in forgot-password email — set manually" }
+    { "key": "razorpayPaymentId", "value": "pay_test12345", "description": "From Razorpay checkout callback — set manually" },
+    { "key": "razorpaySignature", "value": "0000000000000000000000000000000000000000000000000000000000000000", "description": "64-char hex HMAC from Razorpay checkout — set manually" },
+    { "key": "resetToken", "value": "test_reset_token", "description": "Token received in forgot-password email — set manually" }
   ]
 }
