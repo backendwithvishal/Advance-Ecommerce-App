@@ -7,6 +7,13 @@ const connectDB = require('./config/db');
 
 dotenv.config();
 
+// --- Guard: require ADMIN_PASSWORD to be set (QW8)
+if (!process.env.ADMIN_PASSWORD) {
+  console.error('❌ [Seed] ADMIN_PASSWORD env var is not set. Refusing to seed with a default password.');
+  console.error('   Set ADMIN_PASSWORD in your .env file and retry.');
+  process.exit(1);
+}
+
 connectDB();
 
 const importData = async () => {
@@ -15,7 +22,7 @@ const importData = async () => {
     await Product.deleteMany();
 
     const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash('password123', salt);
+    const hashedPassword = await bcrypt.hash(process.env.ADMIN_PASSWORD, salt);
 
     const adminUser = await User.create({
       name: process.env.ADMIN_NAME,

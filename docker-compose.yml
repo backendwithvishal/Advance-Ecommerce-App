@@ -1,4 +1,5 @@
-version: '3.8'
+# ShopNest Docker Compose
+# NOTE: 'version' key removed — deprecated in modern Compose versions
 
 services:
   app:
@@ -9,7 +10,9 @@ services:
       - ./backend/.env
     environment:
       REDIS_URL: redis://redis:6379
-      RABBITMQ_URL: amqp://rabbitmq
+      # Use authenticated RabbitMQ connection string
+      RABBITMQ_URL: amqp://${RABBITMQ_USER:-shopnest}:${RABBITMQ_PASS:-changeme}@rabbitmq
+      MONGO_URI: mongodb://${MONGO_ROOT_USER:-shopnest}:${MONGO_ROOT_PASS:-changeme}@mongo:27017/shopnest?authSource=admin
     depends_on:
       mongo:
         condition: service_healthy
@@ -18,11 +21,23 @@ services:
       rabbitmq:
         condition: service_healthy
     restart: unless-stopped
+    # App health check — Docker / Kubernetes readiness probes (DO4 fix)
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:5000/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
 
   mongo:
     image: mongo:7
     volumes:
       - mongo_data:/data/db
+    environment:
+      # MongoDB root credentials (DO6 fix — was unauthenticated)
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-shopnest}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASS:-changeme}
+      MONGO_INITDB_DATABASE: shopnest
     healthcheck:
       test: ['CMD', 'mongosh', '--eval', "db.adminCommand('ping')"]
       interval: 10s
@@ -44,8 +59,12 @@ services:
   rabbitmq:
     image: rabbitmq:3-management
     ports:
+      # Management UI only — AMQP port (5672) intentionally NOT exposed to host
       - '15672:15672'
-      - '5672:5672'
+    environment:
+      # RabbitMQ credentials (QW14 fix — was using default guest/guest)
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-shopnest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS:-changeme}
     healthcheck:
       test: ['CMD', 'rabbitmq-diagnostics', 'ping']
       interval: 10s

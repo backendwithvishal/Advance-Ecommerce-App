@@ -1,0 +1,28 @@
+# Secrets — NEVER copy .env into Docker image
+.env
+.env.*
+
+# Git history
+.git
+.gitignore
+
+# Node modules (installed fresh in image)
+node_modules/
+
+# Test artifacts
+tests/
+coverage/
+*.lcov
+.nyc_output/
+
+# Dev scripts
+seed.js
+
+# Logs
+*.log
+logs/
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.vscode/

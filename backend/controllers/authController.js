@@ -1,79 +1,72 @@
-const User = require('../models/User');
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
-const { getCache, setCache, delCache } = require('../utils/cache');
-const { publishMessage } = require('../config/rabbitmq');
+const authService = require('../services/authService');
 
-const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' });
-};
-
-const registerUser = async (req, res) => {
+const registerUser = async (req, res, next) => {
   try {
     const { name, email, password } = req.body;
-
-    const userExists = await User.findOne({ email });
-    if (userExists) return res.status(400).json({ message: 'User already exists' });
-
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    const user = await User.create({ name, email, password: hashedPassword });
-    if (user) {
-      // Invalidate user list cache
-      await delCache('users:all');
-
-      // Generate OTP and publish user.registered event (welcome worker handles email)
-      const otp = Math.floor(100000 + Math.random() * 900000);
-      await publishMessage('user.registered', { name: user.name, email: user.email, otp });
-
-      res.status(201).json({
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        token: generateToken(user._id)
-      });
-    } else {
-      res.status(400).json({ message: 'Invalid user data' });
-    }
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+    const result = await authService.register(name, email, password);
+    res.status(201).json(result);
+  } catch (err) {
+    next(err);
   }
 };
 
-const loginUser = async (req, res) => {
+const loginUser = async (req, res, next) => {
   try {
     const { email, password } = req.body;
-    const user = await User.findOne({ email });
-
-    if (user && (await bcrypt.compare(password, user.password))) {
-      res.json({
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        token: generateToken(user._id)
-      });
-    } else {
-      res.status(401).json({ message: 'Invalid email or password' });
-    }
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+    const result = await authService.login(email, password);
+    res.json(result);
+  } catch (err) {
+    next(err);
   }
 };
 
-const getUsers = async (req, res) => {
+const refreshToken = async (req, res, next) => {
   try {
-    const cached = await getCache('users:all');
-    if (cached) return res.json(cached);
-
-    const users = await User.find({}).select('-password');
-    await setCache('users:all', users, 120);
-    res.json(users);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+    const { refreshToken, userId } = req.body;
+    const result = await authService.refresh(refreshToken, userId);
+    res.json(result);
+  } catch (err) {
+    next(err);
   }
 };
 
-module.exports = { registerUser, loginUser, getUsers };
+const logoutUser = async (req, res, next) => {
+  try {
+    await authService.logout(req.user._id);
+    res.json({ message: 'Logged out successfully' });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const forgotPassword = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    await authService.forgotPassword(email);
+    // Always return the same message — don't reveal whether the email exists
+    res.json({ message: 'If an account with that email exists, a reset link has been sent.' });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const resetPassword = async (req, res, next) => {
+  try {
+    const { token, password } = req.body;
+    await authService.resetPassword(token, password);
+    res.json({ message: 'Password reset successful. You can now log in with your new password.' });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const getUsers = async (req, res, next) => {
+  try {
+    const users = await authService.getUsers();
+    res.json(users);
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = { registerUser, loginUser, refreshToken, logoutUser, forgotPassword, resetPassword, getUsers };

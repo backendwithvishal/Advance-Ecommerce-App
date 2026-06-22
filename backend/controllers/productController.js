@@ -1,112 +1,47 @@
-const Product = require('../models/Product');
-const cloudinary = require('../config/cloudinary');
-const { getCache, setCache, delCache } = require('../utils/cache');
-const { publishMessage } = require('../config/rabbitmq');
+const productService = require('../services/productService');
 
-const getProducts = async (req, res) => {
+const getProducts = async (req, res, next) => {
   try {
-    const cached = await getCache('products:all');
-    if (cached) return res.json(cached);
-
-    const products = await Product.find({});
-    await setCache('products:all', products, 300);
-    res.json(products);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+    const result = await productService.getProducts(req.query);
+    res.json(result);
+  } catch (err) {
+    next(err);
   }
 };
 
-const getProductById = async (req, res) => {
+const getProductById = async (req, res, next) => {
   try {
-    const cached = await getCache(`products:${req.params.id}`);
-    if (cached) return res.json(cached);
-
-    const product = await Product.findById(req.params.id);
-    if (product) {
-      await setCache(`products:${req.params.id}`, product, 300);
-      res.json(product);
-    } else {
-      res.status(404).json({ message: 'Product not found' });
-    }
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+    const product = await productService.getProductById(req.params.id);
+    res.json(product);
+  } catch (err) {
+    next(err);
   }
 };
 
-// Helper: upload buffer to Cloudinary
-const uploadToCloudinary = (buffer) =>
-  new Promise((resolve, reject) => {
-    const stream = cloudinary.uploader.upload_stream({ folder: 'shopnest' }, (err, result) => {
-      if (err) return reject(err);
-      resolve(result);
-    });
-    stream.end(buffer);
-  });
-
-const createProduct = async (req, res) => {
+const createProduct = async (req, res, next) => {
   try {
-    const { name, description, price, category, stock } = req.body;
-    let imageUrl = '';
-    if (req.file) {
-      const result = await uploadToCloudinary(req.file.buffer);
-      imageUrl = result.secure_url;
-    }
-    const product = new Product({ name, description, price, category, stock, imageUrl });
-    const createdProduct = await product.save();
-
-    await delCache('products:all', 'analytics:stats');
-    await publishMessage('analytics.invalidate', { source: 'product.created' });
-
-    res.status(201).json(createdProduct);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+    const product = await productService.createProduct(req.body, req.file?.buffer);
+    res.status(201).json(product);
+  } catch (err) {
+    next(err);
   }
 };
 
-const updateProduct = async (req, res) => {
+const updateProduct = async (req, res, next) => {
   try {
-    const { name, description, price, category, stock } = req.body;
-    const product = await Product.findById(req.params.id);
-    if (product) {
-      product.name = name || product.name;
-      product.description = description || product.description;
-      product.price = price || product.price;
-      product.category = category || product.category;
-      product.stock = stock || product.stock;
-
-      if (req.file) {
-        const result = await uploadToCloudinary(req.file.buffer);
-        product.imageUrl = result.secure_url;
-      }
-      const updatedProduct = await product.save();
-
-      await delCache('products:all', `products:${req.params.id}`, 'analytics:stats');
-      await publishMessage('analytics.invalidate', { source: 'product.updated' });
-
-      res.json(updatedProduct);
-    } else {
-      res.status(404).json({ message: 'Product not found' });
-    }
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+    const product = await productService.updateProduct(req.params.id, req.body, req.file?.buffer);
+    res.json(product);
+  } catch (err) {
+    next(err);
   }
 };
 
-const deleteProduct = async (req, res) => {
+const deleteProduct = async (req, res, next) => {
   try {
-    const product = await Product.findById(req.params.id);
-    if (product) {
-      await product.deleteOne();
-
-      await delCache('products:all', `products:${req.params.id}`, 'analytics:stats');
-      await publishMessage('analytics.invalidate', { source: 'product.deleted' });
-
-      res.json({ message: 'Product removed' });
-    } else {
-      res.status(404).json({ message: 'Product not found' });
-    }
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+    await productService.deleteProduct(req.params.id);
+    res.json({ message: 'Product removed' });
+  } catch (err) {
+    next(err);
   }
 };
 
