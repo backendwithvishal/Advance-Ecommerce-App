@@ -8,7 +8,7 @@ const validate = require('../middleware/validate');
 
 const router = express.Router();
 
-// POST /api/orders  — create order
+// POST /api/orders  — create a new order
 router.post(
   '/',
   protect,
@@ -27,22 +27,25 @@ router.post(
   addOrderItems
 );
 
-// GET /api/orders  — admin: list all orders (paginated)
+// GET /api/orders/myorders  — must be BEFORE /:id to avoid Express matching "myorders" as an id
+router.get('/myorders', protect, getMyOrders);
+
+// GET /api/orders  — admin: all orders with pagination and status filter
 router.get(
   '/',
   protect,
   admin,
   [
     query('page').optional().isInt({ min: 1 }).withMessage('page must be a positive integer'),
-    query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('limit must be 1–100'),
-    query('status').optional().isIn(['Pending', 'Shipped', 'Delivered', 'Cancelled']).withMessage('Invalid status'),
+    query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('limit must be between 1 and 100'),
+    query('status')
+      .optional()
+      .isIn(['Pending', 'Paid', 'Shipped', 'Delivered', 'Cancelled'])
+      .withMessage('Invalid status value'),
   ],
   validate,
   getOrders
 );
-
-// GET /api/orders/myorders  — current user's orders (paginated)
-router.get('/myorders', protect, getMyOrders);
 
 // PUT /api/orders/:id/status  — admin: update order status
 router.put(
@@ -51,7 +54,7 @@ router.put(
   admin,
   [
     body('status')
-      .isIn(['Pending', 'Shipped', 'Delivered', 'Cancelled'])
+      .isIn(['Pending', 'Paid', 'Shipped', 'Delivered', 'Cancelled'])
       .withMessage('Invalid order status'),
   ],
   validate,

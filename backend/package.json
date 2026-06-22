@@ -1,14 +1,17 @@
 {
-  "name": "backend",
+  "name": "shopnest-backend",
   "version": "1.0.0",
-  "author": "Shivansh Vasu",
-  "description": "",
+  "description": "ShopNest e-commerce REST API",
   "main": "server.js",
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  },
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
     "seed": "node seed.js",
-    "test": "jest --runInBand"
+    "test": "jest --runInBand --forceExit"
   },
   "jest": {
     "testEnvironment": "node",

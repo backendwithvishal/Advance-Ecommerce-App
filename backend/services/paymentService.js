@@ -22,12 +22,19 @@ function ensureRazorpay() {
 
 // Verify the HMAC-SHA256 signature Razorpay attaches to each payment
 function verifySignature(razorpay_order_id, razorpay_payment_id, razorpay_signature) {
+  // Guard: signature must be exactly 64 hex characters before we call timingSafeEqual
+  // (timingSafeEqual throws if buffer lengths don't match)
+  if (!razorpay_signature || !/^[0-9a-fA-F]{64}$/.test(razorpay_signature)) {
+    const err = new Error('Invalid payment signature');
+    err.status = 400;
+    throw err;
+  }
+
   const expected = crypto
     .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
     .update(`${razorpay_order_id}|${razorpay_payment_id}`)
     .digest('hex');
 
-  // timingSafeEqual prevents timing-based attacks
   const valid = crypto.timingSafeEqual(
     Buffer.from(razorpay_signature, 'hex'),
     Buffer.from(expected, 'hex')
@@ -56,7 +63,7 @@ async function createPaymentOrder(userId, orderId) {
     throw err;
   }
 
-  // Return cached Razorpay order if we already created one (prevents duplicate orders)
+  // Return cached Razorpay order if we already created one (prevents duplicate charges)
   const dedupKey = `payment:dedup:${userId}:${orderId}`;
   const cached = await getCache(dedupKey);
   if (cached) return cached;
@@ -64,7 +71,7 @@ async function createPaymentOrder(userId, orderId) {
   const razorpayOrder = await razorpay.orders.create({
     amount: Math.round(order.totalAmount * 100), // Razorpay expects paise
     currency: 'INR',
-    receipt: orderId,
+    receipt: String(orderId),
   });
 
   await setCache(dedupKey, razorpayOrder, 600);
@@ -74,18 +81,26 @@ async function createPaymentOrder(userId, orderId) {
 async function confirmPayment(userId, razorpay_order_id, razorpay_payment_id, razorpay_signature, orderId) {
   ensureRazorpay();
 
-  // 1. Verify the HMAC signature first — anything else trusts the client too much
+  // 1. Verify HMAC signature — must happen before any DB write
   verifySignature(razorpay_order_id, razorpay_payment_id, razorpay_signature);
 
-  // 2. Double-check the payment is actually captured on Razorpay's end
-  const payment = await razorpay.payments.fetch(razorpay_payment_id);
+  // 2. Double-check payment status on Razorpay's side
+  let payment;
+  try {
+    payment = await razorpay.payments.fetch(razorpay_payment_id);
+  } catch (err) {
+    const e = new Error('Could not verify payment with Razorpay');
+    e.status = 502;
+    throw e;
+  }
+
   if (!['captured', 'authorized'].includes(payment.status)) {
     const err = new Error(`Payment is not complete (status: ${payment.status})`);
     err.status = 402;
     throw err;
   }
 
-  // 3. Update our order — filter by userId so users can only confirm their own orders
+  // 3. Update our order — userId in filter ensures users can't confirm other people's orders
   const updated = await Order.findOneAndUpdate(
     { _id: orderId, userId },
     { paymentId: razorpay_payment_id, status: 'Paid' },

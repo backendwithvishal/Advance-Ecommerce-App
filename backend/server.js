@@ -1,11 +1,33 @@
 require('dotenv').config();
 
-// --- Startup env var validation
-const REQUIRED_ENV = ['RAZORPAY_KEY_ID', 'RAZORPAY_KEY_SECRET'];
+// Check required env vars at startup — warn but don't crash on optional ones
+const REQUIRED_ENV = [
+  'MONGO_URI',
+  'JWT_SECRET',
+];
+
+const WARN_ENV = [
+  'RAZORPAY_KEY_ID',
+  'RAZORPAY_KEY_SECRET',
+  'GMAIL_USER',
+  'GMAIL_PASS',
+  'CLOUDINARY_CLOUD_NAME',
+  'CLOUDINARY_API_KEY',
+  'CLOUDINARY_API_SECRET',
+];
+
+let startupFailed = false;
 for (const key of REQUIRED_ENV) {
   if (!process.env[key]) {
-    console.error(`[Startup] Missing required env var: ${key}`);
-    process.exit(1);
+    console.error(`[Startup] FATAL: Missing required env var: ${key}`);
+    startupFailed = true;
+  }
+}
+if (startupFailed) process.exit(1);
+
+for (const key of WARN_ENV) {
+  if (!process.env[key]) {
+    console.warn(`[Startup] WARNING: ${key} is not set — related features will be disabled`);
   }
 }
 
@@ -17,19 +39,30 @@ const app = require('./index');
 
 const PORT = process.env.PORT || 5000;
 
+// Catch anything that slips through — prevents silent crashes in production
+process.on('uncaughtException', (err) => {
+  console.error('[uncaughtException]', err);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('[unhandledRejection]', reason);
+  process.exit(1);
+});
+
 const start = async () => {
-  // Connect to MongoDB
+  // MongoDB is required — crash on failure
   await connectDB();
 
-  // Connect to Redis (non-blocking — degrades gracefully on failure)
+  // Redis is optional — app degrades gracefully (no caching, no rate limiting)
   await connectRedis();
 
-  // Connect to RabbitMQ and start all workers (non-blocking)
+  // RabbitMQ is optional — app degrades gracefully (no background jobs)
   await connectRabbitMQ();
   startWorkers();
 
-  app.listen(PORT, () => {
-    console.log(`[Server] ShopNest API running on port ${PORT}`);
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`[Server] ShopNest API running on port ${PORT} (env: ${process.env.NODE_ENV || 'development'})`);
   });
 };
 
