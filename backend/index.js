@@ -81,12 +81,13 @@ app.get('/health', async (_req, res) => {
 });
 
 // API routes
-app.use('/api/auth',      require('./routes/authRoutes'));
-app.use('/api/products',  require('./routes/productRoutes'));
-app.use('/api/orders',    require('./routes/orderRoutes'));
-app.use('/api/payment',   require('./routes/paymentRoutes'));
-app.use('/api/analytics', require('./routes/analyticsRoutes'));
-app.use('/api/reviews',   require('./routes/reviewRoutes'));
+app.use('/api/auth',        require('./routes/authRoutes'));
+app.use('/api/admin/auth',  require('./routes/adminAuthRoutes'));
+app.use('/api/products',    require('./routes/productRoutes'));
+app.use('/api/orders',      require('./routes/orderRoutes'));
+app.use('/api/payment',     require('./routes/paymentRoutes'));
+app.use('/api/analytics',   require('./routes/analyticsRoutes'));
+app.use('/api/reviews',     require('./routes/reviewRoutes'));
 
 // Root endpoint — useful for quickly checking the API is alive
 app.get('/', (_req, res) => {
@@ -96,13 +97,14 @@ app.get('/', (_req, res) => {
     status: 'online',
     timestamp: new Date().toISOString(),
     endpoints: {
-      auth:      '/api/auth',
-      products:  '/api/products',
-      orders:    '/api/orders',
-      payment:   '/api/payment',
-      analytics: '/api/analytics',
-      reviews:   '/api/reviews',
-      health:    '/health',
+      auth:       '/api/auth',
+      adminAuth:  '/api/admin/auth',
+      products:   '/api/products',
+      orders:     '/api/orders',
+      payment:    '/api/payment',
+      analytics:  '/api/analytics',
+      reviews:    '/api/reviews',
+      health:     '/health',
     },
   });
 });
