@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "2457ef87-a7a7-401c-a6cf-94d3402bc0d8",
     "name": "ShopNest API",
-    "description": "Complete ShopNest backend API collection.\n\nImport this file and set the `endpoint` variable to your server URL.\n\nUser Auth  → /api/auth/*\nAdmin Auth → /api/admin/auth/*\n\nEndpoints:\n- POST /api/auth/register\n- POST /api/auth/login\n- POST /api/auth/refresh\n- POST /api/auth/logout\n- POST /api/auth/forgot-password\n- POST /api/auth/reset-password\n- GET  /api/auth/users (admin only)\n- POST /api/admin/auth/register\n- POST /api/admin/auth/login\n- POST /api/admin/auth/refresh\n- POST /api/admin/auth/logout\n- POST /api/admin/auth/forgot-password\n- POST /api/admin/auth/reset-password\n- GET  /api/admin/auth/admins\n- GET  /api/products\n- POST /api/products (admin)\n- PUT  /api/products/:id (admin)\n- DELETE /api/products/:id (admin)\n- POST /api/orders\n- GET  /api/orders/myorders\n- GET  /api/orders (admin)\n- PUT  /api/orders/:id/status (admin)\n- POST /api/payment/order\n- POST /api/payment/confirm\n- POST /api/payment/verify\n- GET  /api/reviews/:productId\n- POST /api/reviews\n- DELETE /api/reviews/:id\n- GET  /api/analytics (admin)\n- GET  /health",
+    "description": "Complete ShopNest backend API collection.\n\nImport this file and set the `endpoint` variable to your server URL.\n\nUser Auth  → /api/auth/*\nAdmin Auth → /api/admin/auth/*\n\nEndpoints:\n- POST /api/auth/register\n- POST /api/auth/login\n- POST /api/auth/refresh\n- POST /api/auth/logout\n- POST /api/auth/forgot-password\n- POST /api/auth/reset-password\n- GET  /api/auth/users (admin only)\n- POST /api/admin/auth/register\n- POST /api/admin/auth/login\n- POST /api/admin/auth/refresh\n- POST /api/admin/auth/logout\n- POST /api/admin/auth/forgot-password\n- POST /api/admin/auth/reset-password\n- GET  /api/admin/auth/admins\n- GET  /api/products\n- GET  /api/products/:id\n- POST /api/products (admin)\n- PUT  /api/products/:id (admin)\n- DELETE /api/products/:id (admin)\n- POST /api/orders\n- GET  /api/orders/myorders\n- GET  /api/orders (admin)\n- PUT  /api/orders/:id/status (admin)\n- POST /api/payment/order\n- POST /api/payment/confirm\n- POST /api/payment/verify\n- GET  /api/reviews/:productId\n- POST /api/reviews\n- DELETE /api/reviews/:id\n- GET  /api/analytics (admin)\n- GET  /health",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -651,3 +651,310 @@
         }
       ]
     },
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "Create Order",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res._id) {",
+                  "  pm.collectionVariables.set('orderId', res._id);",
+                  "  pm.environment.set('orderId', res._id);",
+                  "  console.log('orderId saved:', res._id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"qty\": 2\n    }\n  ],\n  \"address\": {\n    \"fullName\": \"John Doe\",\n    \"street\": \"123 Main Street\",\n    \"city\": \"Mumbai\",\n    \"state\": \"Maharashtra\",\n    \"postalCode\": \"400001\",\n    \"country\": \"India\"\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{endpoint}}/api/orders",
+              "host": ["{{endpoint}}"],
+              "path": ["api", "orders"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Orders",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{endpoint}}/api/orders/myorders?page=1&limit=10",
+              "host": ["{{endpoint}}"],
+              "path": ["api", "orders", "myorders"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "ADMIN -- Get All Orders",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{endpoint}}/api/orders?page=1&limit=20&status=Pending",
+              "host": ["{{endpoint}}"],
+              "path": ["api", "orders"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" },
+                { "key": "status", "value": "Pending", "description": "One of: Pending, Paid, Shipped, Delivered, Cancelled" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "ADMIN -- Update Order Status",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }]
+            },
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"Shipped\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{endpoint}}/api/orders/{{orderId}}/status",
+              "host": ["{{endpoint}}"],
+              "path": ["api", "orders", "{{orderId}}", "status"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Payment",
+      "item": [
+        {
+          "name": "Create Razorpay Order",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.id) {",
+                  "  pm.collectionVariables.set('razorpayOrderId', res.id);",
+                  "  pm.environment.set('razorpayOrderId', res.id);",
+                  "  console.log('razorpayOrderId saved:', res.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderId\": \"{{orderId}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{endpoint}}/api/payment/order",
+              "host": ["{{endpoint}}"],
+              "path": ["api", "payment", "order"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Confirm Payment",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"razorpay_order_id\": \"{{razorpayOrderId}}\",\n  \"razorpay_payment_id\": \"pay_REPLACE_WITH_PAYMENT_ID\",\n  \"razorpay_signature\": \"REPLACE_WITH_64_CHAR_HEX_SIGNATURE\",\n  \"orderId\": \"{{orderId}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{endpoint}}/api/payment/confirm",
+              "host": ["{{endpoint}}"],
+              "path": ["api", "payment", "confirm"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Verify Payment Signature",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"razorpay_order_id\": \"{{razorpayOrderId}}\",\n  \"razorpay_payment_id\": \"pay_REPLACE_WITH_PAYMENT_ID\",\n  \"razorpay_signature\": \"REPLACE_WITH_64_CHAR_HEX_SIGNATURE\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{endpoint}}/api/payment/verify",
+              "host": ["{{endpoint}}"],
+              "path": ["api", "payment", "verify"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Reviews",
+      "item": [
+        {
+          "name": "Get Product Reviews",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{endpoint}}/api/reviews/{{productId}}",
+              "host": ["{{endpoint}}"],
+              "path": ["api", "reviews", "{{productId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Review",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res._id) {",
+                  "  pm.collectionVariables.set('reviewId', res._id);",
+                  "  pm.environment.set('reviewId', res._id);",
+                  "  console.log('reviewId saved:', res._id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"{{productId}}\",\n  \"rating\": 5,\n  \"comment\": \"Excellent product! Highly recommended.\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{endpoint}}/api/reviews",
+              "host": ["{{endpoint}}"],
+              "path": ["api", "reviews"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Review",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{endpoint}}/api/reviews/{{reviewId}}",
+              "host": ["{{endpoint}}"],
+              "path": ["api", "reviews", "{{reviewId}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Analytics",
+      "item": [
+        {
+          "name": "ADMIN -- Get Analytics Stats",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{endpoint}}/api/analytics",
+              "host": ["{{endpoint}}"],
+              "path": ["api", "analytics"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "endpoint", "value": "http://localhost:5000", "type": "string" },
+    { "key": "token", "value": "", "type": "string" },
+    { "key": "refreshToken", "value": "", "type": "string" },
+    { "key": "userId", "value": "", "type": "string" },
+    { "key": "resetToken", "value": "", "type": "string" },
+    { "key": "adminToken", "value": "", "type": "string" },
+    { "key": "adminRefreshToken", "value": "", "type": "string" },
+    { "key": "adminUserId", "value": "", "type": "string" },
+    { "key": "adminResetToken", "value": "", "type": "string" },
+    { "key": "productId", "value": "", "type": "string" },
+    { "key": "orderId", "value": "", "type": "string" },
+    { "key": "razorpayOrderId", "value": "", "type": "string" },
+    { "key": "reviewId", "value": "", "type": "string" }
+  ]
+}
